@@ -766,8 +766,8 @@ github.com/chavacava/garif v0.0.0-20210405164556-e8a0a408d6af/go.mod h1:Qjyv4H3/
 github.com/checkpoint-restore/go-criu/v4 v4.1.0/go.mod h1:xUQBLp4RLc5zJtWY++yjOoMoB5lihDt7fai+75m+rGw=
 github.com/checkpoint-restore/go-criu/v5 v5.0.0/go.mod h1:cfwC0EG7HMUenopBsUf9d89JlCLQIfgVcNsNN0t6T2M=
 github.com/checkpoint-restore/go-criu/v5 v5.3.0/go.mod h1:E/eQpaFtUKGOOSEBZgmKAcn+zUUwWxqcaKZlF54wK8E=
-github.com/chiragkyal/library-go v0.0.0-20231017112159-186073dd211e h1:IzUIDmuH1xI68tML+xyA97U74MSUHW/VKnK67qFqs7w=
-github.com/chiragkyal/library-go v0.0.0-20231017112159-186073dd211e/go.mod h1:hl8bxWuFMM72N4YH7FKLGWtYhDz/A0xwvaa8Yr5fxYU=
+github.com/chiragkyal/library-go v0.0.0-20240208145149-d36727950ef7 h1:D1JF+DgOI4zcFBfPS6sUlmIA5bbwCfFKIoeE+8sUuUA=
+github.com/chiragkyal/library-go v0.0.0-20240208145149-d36727950ef7/go.mod h1:hl8bxWuFMM72N4YH7FKLGWtYhDz/A0xwvaa8Yr5fxYU=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e/go.mod h1:nSuG5e5PlCu98SY8svDHJxuZscDgtXS6KTTbou5AhLI=
 github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1/go.mod h1:Q3SI9o4m/ZMnBNeIyt5eFwwo7qiLfzFZmjNmxjkiQlU=

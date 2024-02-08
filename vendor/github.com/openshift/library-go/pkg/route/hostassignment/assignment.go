@@ -136,7 +136,7 @@ func certificateChangeRequiresAuth(route, older *routev1.Route, opts route.Route
 	}
 }
 
-// validateHostUpdate checks if the user has the correct permissions based on the updates
+// ValidateHostUpdate checks if the user has the correct permissions based on the updates
 // done to the route object. If the route's host/subdomain has been updated it checks if
 // the user has "update" permission on custom-host subresource. If only the certificate
 // has changed, it checks if the user has "create" permission on the custom-host subresource.

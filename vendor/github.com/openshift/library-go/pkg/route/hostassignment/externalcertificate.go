@@ -9,7 +9,7 @@ import (
 	routecommon "github.com/openshift/library-go/pkg/route"
 )
 
-// validateHostExternalCertificate checks if the user has permissions to create and update
+// ValidateHostExternalCertificate checks if the user has permissions to create and update
 // custom-host subresource of routes. This check is required to be done prior to ValidateHostUpdate()
 // since updating hosts while using externalCertificate is contingent on the user having both these
 // permissions. The ValidateHostUpdate() cannot differentiate if the certificate has changed since
