@@ -218,4 +218,4 @@ replace (
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.28.3
 )
 
-replace github.com/openshift/library-go => github.com/chiragkyal/library-go v0.0.0-20231017112159-186073dd211e
+replace github.com/openshift/library-go => github.com/chiragkyal/library-go v0.0.0-20240208145149-d36727950ef7

@@ -57,6 +57,8 @@ const (
 	// permittedResponseHeaderValueErrorMessage is the API validation
 	// message for an invalid HTTP response header value.
 	permittedResponseHeaderValueErrorMessage = "Either header value provided is not in correct format or the converter specified is not allowed. The dynamic header value  may use HAProxy's %[] syntax and otherwise must be a valid HTTP header value as defined in https://datatracker.ietf.org/doc/html/rfc7230#section-3.2 Sample fetchers allowed are res.hdr, ssl_c_der. Converters allowed are lower, base64."
+	// routerServiceAccount is used to validate RBAC permissions for externalCertificate
+	routerServiceAccount = "system:serviceaccount:openshift-ingress:router"
 )
 
 var (
@@ -242,6 +244,7 @@ func validateTLS(ctx context.Context, route *routev1.Route, fldPath *field.Path,
 		return nil
 	}
 
+	// in all cases certificate and externalCertificate must not be specified at the same time
 	switch tls.Termination {
 	// reencrypt may specify destination ca cert
 	// externalCert, cert, key, cacert may not be specified because the route may be a wildcard
@@ -249,6 +252,9 @@ func validateTLS(ctx context.Context, route *routev1.Route, fldPath *field.Path,
 		if opts.AllowExternalCertificates && tls.ExternalCertificate != nil {
 			if len(tls.Certificate) > 0 && len(tls.ExternalCertificate.Name) > 0 {
 				result = append(result, field.Invalid(fldPath.Child("externalCertificate"), tls.ExternalCertificate.Name, "cannot specify both tls.certificate and tls.externalCertificate"))
+			} else if len(tls.ExternalCertificate.Name) > 0 {
+				errs := validateTLSExternalCertificate(ctx, route, fldPath.Child("externalCertificate"), sarc, secrets)
+				result = append(result, errs...)
 			}
 		}
 	//passthrough term should not specify any cert
@@ -284,7 +290,6 @@ func validateTLS(ctx context.Context, route *routev1.Route, fldPath *field.Path,
 		if opts.AllowExternalCertificates && tls.ExternalCertificate != nil {
 			if len(tls.Certificate) > 0 && len(tls.ExternalCertificate.Name) > 0 {
 				result = append(result, field.Invalid(fldPath.Child("externalCertificate"), tls.ExternalCertificate.Name, "cannot specify both tls.certificate and tls.externalCertificate"))
-				break
 			} else if len(tls.ExternalCertificate.Name) > 0 {
 				errs := validateTLSExternalCertificate(ctx, route, fldPath.Child("externalCertificate"), sarc, secrets)
 				result = append(result, errs...)
@@ -303,14 +308,17 @@ func validateTLS(ctx context.Context, route *routev1.Route, fldPath *field.Path,
 	return result
 }
 
-// validateTLSExternalCertificate
-func validateTLSExternalCertificate(ctx context.Context, route *routev1.Route, fldPath *field.Path, sarCreator routecommon.SubjectAccessReviewCreator, secretsGetter corev1client.SecretsGetter) field.ErrorList {
+// validateTLSExternalCertificate tests different pre-conditions required for
+// using externalCertificate. Called by validateTLS.
+func validateTLSExternalCertificate(ctx context.Context, route *routev1.Route, fldPath *field.Path, sarc routecommon.SubjectAccessReviewCreator, secretsGetter corev1client.SecretsGetter) field.ErrorList {
 	tls := route.Spec.TLS
-	var errs field.ErrorList
 
-	errs = append(errs, routecommon.CheckRouteCustomHostSAR(ctx, fldPath, sarCreator)...)
+	// user must have create and update permission on the custom-host sub-resource.
+	errs := routecommon.CheckRouteCustomHostSAR(ctx, fldPath, sarc)
 
-	if err := authorizationutil.Authorize(sarCreator, &user.DefaultInfo{Name: "system:serviceaccount:openshift-ingress:router"},
+	// The router serviceaccount must have permission to get/list/watch the referenced secret.
+	// The role and rolebinding to provide this access must be provided by the user.
+	if err := authorizationutil.Authorize(sarc, &user.DefaultInfo{Name: routerServiceAccount},
 		&authorizationv1.ResourceAttributes{
 			Namespace: route.Namespace,
 			Verb:      "get",
@@ -320,7 +328,7 @@ func validateTLSExternalCertificate(ctx context.Context, route *routev1.Route, f
 		errs = append(errs, field.Forbidden(fldPath, "router serviceaccount does not have permission to get this secret"))
 	}
 
-	if err := authorizationutil.Authorize(sarCreator, &user.DefaultInfo{Name: "system:serviceaccount:openshift-ingress:router"},
+	if err := authorizationutil.Authorize(sarc, &user.DefaultInfo{Name: routerServiceAccount},
 		&authorizationv1.ResourceAttributes{
 			Namespace: route.Namespace,
 			Verb:      "watch",
@@ -330,7 +338,7 @@ func validateTLSExternalCertificate(ctx context.Context, route *routev1.Route, f
 		errs = append(errs, field.Forbidden(fldPath, "router serviceaccount does not have permission to watch this secret"))
 	}
 
-	if err := authorizationutil.Authorize(sarCreator, &user.DefaultInfo{Name: "system:serviceaccount:openshift-ingress:router"},
+	if err := authorizationutil.Authorize(sarc, &user.DefaultInfo{Name: routerServiceAccount},
 		&authorizationv1.ResourceAttributes{
 			Namespace: route.Namespace,
 			Verb:      "list",
@@ -340,14 +348,15 @@ func validateTLSExternalCertificate(ctx context.Context, route *routev1.Route, f
 		errs = append(errs, field.Forbidden(fldPath, "router serviceaccount does not have permission to list this secret"))
 	}
 
+	// The secret should be in the same namespace as that of the route.
 	secret, err := secretsGetter.Secrets(route.Namespace).Get(ctx, tls.ExternalCertificate.Name, metav1.GetOptions{})
 	if err != nil && apierrors.IsNotFound(err) {
-		errs = append(errs, field.NotFound(fldPath, err))
-		return errs
+		return append(errs, field.NotFound(fldPath, err))
 	} else if err != nil {
 		return append(errs, field.InternalError(fldPath, err))
 	}
 
+	// The secret should be of type kubernetes.io/tls
 	if secret.Type != corev1.SecretTypeTLS {
 		errs = append(errs, field.Invalid(fldPath, tls.ExternalCertificate.Name, "secret of type 'kubernetes/tls' required"))
 	}
