@@ -122,10 +122,8 @@ func (s routeStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Obje
 	oldRoute := old.(*routeapi.Route)
 	objRoute := obj.(*routeapi.Route)
 	var errs field.ErrorList
-	if s.routeValidationOptions().AllowExternalCertificates {
-		errs = routehostassignment.ValidateHostExternalCertificate(ctx, objRoute, oldRoute, s.sarClient, s.routeValidationOptions())
-	}
-	errs = routehostassignment.ValidateHostUpdate(ctx, objRoute, oldRoute, s.sarClient, s.routeValidationOptions())
+	errs = append(errs, routehostassignment.ValidateHostExternalCertificate(ctx, objRoute, oldRoute, s.sarClient, s.routeValidationOptions())...)
+	errs = append(errs, routehostassignment.ValidateHostUpdate(ctx, objRoute, oldRoute, s.sarClient, s.routeValidationOptions())...)
 	errs = append(errs, validation.ValidateRouteUpdate(ctx, objRoute, oldRoute, s.sarClient, s.secrets, s.routeValidationOptions())...)
 	return errs
 }
