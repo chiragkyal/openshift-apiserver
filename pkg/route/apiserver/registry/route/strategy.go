@@ -36,19 +36,19 @@ type routeStrategy struct {
 	names.NameGenerator
 	hostnameGenerator         HostnameGenerator
 	sarClient                 SubjectAccessReviewInterface
-	secrets                   corev1client.SecretsGetter
+	secretsGetter             corev1client.SecretsGetter
 	allowExternalCertificates bool
 }
 
 // NewStrategy initializes the default logic that applies when creating and updating
 // Route objects via the REST API.
-func NewStrategy(allocator HostnameGenerator, sarClient SubjectAccessReviewInterface, secrets corev1client.SecretsGetter, allowExternalCertificates bool) routeStrategy {
+func NewStrategy(allocator HostnameGenerator, sarClient SubjectAccessReviewInterface, secretsGetter corev1client.SecretsGetter, allowExternalCertificates bool) routeStrategy {
 	return routeStrategy{
 		ObjectTyper:               legacyscheme.Scheme,
 		NameGenerator:             names.SimpleNameGenerator,
 		hostnameGenerator:         allocator,
 		sarClient:                 sarClient,
-		secrets:                   secrets,
+		secretsGetter:             secretsGetter,
 		allowExternalCertificates: allowExternalCertificates,
 	}
 }
@@ -101,7 +101,7 @@ func (s routeStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Ob
 func (s routeStrategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
 	route := obj.(*routeapi.Route)
 	errs := routehostassignment.AllocateHost(ctx, route, s.sarClient, s.hostnameGenerator, s.routeValidationOptions())
-	errs = append(errs, validation.ValidateRoute(ctx, route, s.sarClient, s.secrets, s.routeValidationOptions())...)
+	errs = append(errs, validation.ValidateRoute(ctx, route, s.sarClient, s.secretsGetter, s.routeValidationOptions())...)
 	return errs
 }
 
@@ -124,7 +124,7 @@ func (s routeStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Obje
 	// ValidateHostExternalCertificate must be called before ValidateHostUpdate
 	errs := routehostassignment.ValidateHostExternalCertificate(ctx, objRoute, oldRoute, s.sarClient, s.routeValidationOptions())
 	errs = append(errs, routehostassignment.ValidateHostUpdate(ctx, objRoute, oldRoute, s.sarClient, s.routeValidationOptions())...)
-	errs = append(errs, validation.ValidateRouteUpdate(ctx, objRoute, oldRoute, s.sarClient, s.secrets, s.routeValidationOptions())...)
+	errs = append(errs, validation.ValidateRouteUpdate(ctx, objRoute, oldRoute, s.sarClient, s.secretsGetter, s.routeValidationOptions())...)
 	return errs
 }
 
