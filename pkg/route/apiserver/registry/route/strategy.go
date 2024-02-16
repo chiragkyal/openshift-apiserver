@@ -121,8 +121,8 @@ func (routeStrategy) Canonicalize(obj runtime.Object) {
 func (s routeStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {
 	oldRoute := old.(*routeapi.Route)
 	objRoute := obj.(*routeapi.Route)
-	var errs field.ErrorList
-	errs = append(errs, routehostassignment.ValidateHostExternalCertificate(ctx, objRoute, oldRoute, s.sarClient, s.routeValidationOptions())...)
+	// ValidateHostExternalCertificate must be called before ValidateHostUpdate
+	errs := routehostassignment.ValidateHostExternalCertificate(ctx, objRoute, oldRoute, s.sarClient, s.routeValidationOptions())
 	errs = append(errs, routehostassignment.ValidateHostUpdate(ctx, objRoute, oldRoute, s.sarClient, s.routeValidationOptions())...)
 	errs = append(errs, validation.ValidateRouteUpdate(ctx, objRoute, oldRoute, s.sarClient, s.secrets, s.routeValidationOptions())...)
 	return errs
